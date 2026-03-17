@@ -1,0 +1,372 @@
+---
+title: "OS/PFS Survival Analysis — Cox Proportional Hazards Model"
+subtitle: "TCGA Cohorts · Predefined Gene Signatures"
+date: today
+author: "Larkspur Survival Pipeline"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Contents"
+    number-sections: true
+    code-fold: true
+    code-summary: "Show code"
+    theme: cosmo
+    fig-width: 9
+    fig-height: 6
+    self-contained: true
+    df-print: kable
+execute:
+  echo: true
+  warning: false
+  message: false
+  cache: false
+params:
+  cohorts_yaml:   "../metadata/cohorts.yaml"
+  signatures_yaml: "../metadata/signatures.yaml"
+  data_dir:       "../cbioportal"
+---
+
+```{r setup}
+#| label: setup
+#| include: false
+
+# Load project utilities
+source(here::here("R", "utils.R"))
+
+library(kableExtra)
+library(here)
+
+knitr::opts_chunk$set(
+  fig.align  = "center",
+  out.width  = "95%"
+)
+```
+
+## Introduction
+
+This report performs **Overall Survival (OS)** and **Progression-Free Survival (PFS)** analysis
+for predefined gene signatures across TCGA cohorts, using **Cox proportional hazards (Cox PH)** models.
+
+For each combination of cohort × signature × endpoint, the analysis:
+
+1. Loads clinical and mRNA expression data from the cBioPortal folder structure.
+2. Computes a per-sample **signature score** (z-scored mean of constituent genes).
+3. Dichotomises patients into **High** / **Low** groups at the cohort median score.
+4. Fits a **Cox PH model** (unadjusted) and reports hazard ratio (HR), 95 % CI, and *p*-value.
+5. Tests the **proportional hazards (PH) assumption** via Schoenfeld residuals.
+6. Generates **Kaplan–Meier (KM) curves** and a **forest plot** across all analyses.
+
+---
+
+## Configuration
+
+```{r load-config}
+#| label: load-config
+
+cohort_cfg <- yaml::read_yaml(here(params$cohorts_yaml))
+sig_cfg    <- yaml::read_yaml(here(params$signatures_yaml))
+
+cat(sprintf("Cohorts loaded    : %d\n", length(cohort_cfg$cohorts)))
+cat(sprintf("Signatures loaded : %d\n", length(sig_cfg$signatures)))
+cat("\nCohorts:\n")
+for (c in cohort_cfg$cohorts) cat(sprintf("  • %s (%s)\n", c$label, c$study_id))
+cat("\nSignatures:\n")
+for (s in sig_cfg$signatures) cat(sprintf("  • %s — genes: %s\n", s$label,
+                                           paste(s$genes, collapse = ", ")))
+```
+
+---
+
+## Data Loading
+
+```{r load-data}
+#| label: load-data
+
+data_dir <- here(params$data_dir)
+
+cohort_data <- map(cohort_cfg$cohorts, function(cfg) {
+  clin_path <- file.path(data_dir, cfg$study_id, cfg$clinical_file)
+  expr_path <- file.path(data_dir, cfg$study_id, cfg$expression_file)
+
+  stopifnot(
+    file.exists(clin_path),
+    file.exists(expr_path)
+  )
+
+  list(
+    config   = cfg,
+    clinical = read_cbio_clinical(clin_path),
+    expr     = read_cbio_expression(expr_path)
+  )
+})
+
+names(cohort_data) <- map_chr(cohort_cfg$cohorts, "label")
+
+# Quick data overview
+overview_tbl <- imap_dfr(cohort_data, function(d, lbl) {
+  tibble(
+    Cohort         = lbl,
+    Patients       = nrow(d$clinical),
+    Genes          = nrow(d$expr),
+    OS_events      = sum(d$clinical$OS_STATUS  == "1:DECEASED",    na.rm = TRUE),
+    PFS_events     = sum(d$clinical$PFS_STATUS == "1:PROGRESSED",  na.rm = TRUE)
+  )
+})
+
+kable(overview_tbl, caption = "Cohort overview") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+---
+
+## Survival Analysis
+
+```{r run-analysis}
+#| label: run-analysis
+
+all_results <- list()
+
+for (cohort_name in names(cohort_data)) {
+  d        <- cohort_data[[cohort_name]]
+  cfg      <- d$config
+  clinical <- d$clinical
+  expr     <- d$expr
+
+  all_results[[cohort_name]] <- list()
+
+  for (endpoint in cfg$endpoints) {
+    all_results[[cohort_name]][[endpoint]] <- list()
+
+    for (sig in sig_cfg$signatures) {
+      sig_name <- sig$name
+      method   <- if (!is.null(sig$scoring)) sig$scoring else "mean"
+
+      scores <- tryCatch(
+        compute_signature_score(expr, sig$genes, method = method),
+        error = function(e) {
+          message(sprintf("[SKIP] %s / %s / %s: %s", cohort_name, endpoint, sig_name, e$message))
+          NULL
+        }
+      )
+      if (is.null(scores)) next
+
+      surv_data <- tryCatch(
+        prepare_survival_data(clinical, scores, endpoint = endpoint),
+        error = function(e) {
+          message(sprintf("[SKIP] %s / %s / %s: %s", cohort_name, endpoint, sig_name, e$message))
+          NULL
+        }
+      )
+      if (is.null(surv_data) || nrow(surv_data) < 10) next
+
+      cox_res <- tryCatch(
+        run_cox_analysis(surv_data),
+        error = function(e) {
+          message(sprintf("[SKIP] %s / %s / %s Cox error: %s",
+                          cohort_name, endpoint, sig_name, e$message))
+          NULL
+        }
+      )
+      if (is.null(cox_res)) next
+
+      all_results[[cohort_name]][[endpoint]][[sig_name]] <- c(
+        cox_res,
+        list(
+          surv_data     = surv_data,
+          sig_label     = sig$label,
+          sig_direction = if (!is.null(sig$direction)) sig$direction else NA_character_,
+          endpoint      = endpoint
+        )
+      )
+    }
+  }
+}
+
+cat("Analysis complete. Results matrix:\n")
+for (cohort in names(all_results)) {
+  for (ep in names(all_results[[cohort]])) {
+    sigs_done <- names(all_results[[cohort]][[ep]])
+    cat(sprintf("  %s / %s : %s\n", cohort, ep, paste(sigs_done, collapse = ", ")))
+  }
+}
+```
+
+---
+
+## Results per Cohort
+
+```{r results-per-cohort}
+#| label: results-per-cohort
+#| results: asis
+
+for (cohort_name in names(all_results)) {
+  cat(sprintf("\n### %s\n\n", cohort_name))
+
+  for (endpoint in names(all_results[[cohort_name]])) {
+    ep_label <- if (endpoint == "OS") "Overall Survival (OS)" else
+      "Progression-Free Survival (PFS)"
+    cat(sprintf("\n#### %s\n\n", ep_label))
+
+    for (sig_name in names(all_results[[cohort_name]][[endpoint]])) {
+      res       <- all_results[[cohort_name]][[endpoint]][[sig_name]]
+      sig_label <- res$sig_label
+      surv_data <- res$surv_data
+
+      cat(sprintf("\n##### %s\n\n", sig_label))
+
+      # --- Cox summary table ---
+      cat("**Cox PH model — High vs Low signature score:**\n\n")
+      tbl <- res$summary_tbl %>%
+        mutate(across(c(hr, ci_lower, ci_upper), ~round(., 3)),
+               p_value = fmt_pval(p_value)) %>%
+        rename(Term = term, HR = hr, `CI lower` = ci_lower,
+               `CI upper` = ci_upper, `P-value` = p_value)
+      print(kable(tbl, format = "html") %>%
+              kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                            full_width = FALSE))
+      cat("\n")
+
+      # --- PH assumption test ---
+      if (!is.null(res$ph_test)) {
+        ph_df <- as.data.frame(res$ph_test$table)
+        ph_df <- ph_df %>%
+          rownames_to_column("term") %>%
+          mutate(across(where(is.numeric), ~round(., 4)))
+        cat("**Proportional hazards test (Schoenfeld residuals):**\n\n")
+        ph_p <- ph_df$p[ph_df$term == "GLOBAL"]
+        if (!is.na(ph_p) && ph_p < 0.05) {
+          cat("::: {.callout-warning}\n")
+          cat(sprintf("PH assumption may be violated (global p = %.3f).", ph_p))
+          cat(" Consider time-varying covariate or stratified model.\n")
+          cat(":::\n\n")
+        } else {
+          cat(sprintf("Global Schoenfeld test p = %.3f — PH assumption not violated.\n\n",
+                      if (is.na(ph_p)) NA_real_ else ph_p))
+        }
+      }
+
+      # --- KM plot ---
+      km <- tryCatch(
+        plot_km_curves(
+          surv_data,
+          title    = sprintf("%s | %s | %s", cohort_name, endpoint, sig_label),
+          endpoint = endpoint
+        ),
+        error = function(e) NULL
+      )
+      if (!is.null(km)) {
+        print(km)
+        cat("\n")
+      }
+    }
+  }
+}
+```
+
+---
+
+## Summary
+
+### Results Table
+
+```{r summary-table}
+#| label: summary-table
+
+summary_tbl <- build_summary_table(all_results) %>%
+  rename(
+    `CI Lower`    = CI_lower,
+    `CI Upper`    = CI_upper,
+    `P-value`     = P_value,
+    `Direction OK` = Direction_OK
+  ) %>%
+  mutate(
+    `Direction OK` = dplyr::case_when(
+      is.na(`Direction OK`)    ~ "—",
+      isTRUE(`Direction OK`)   ~ "\u2714",  # checkmark
+      TRUE                     ~ "\u2718"   # cross
+    )
+  )
+
+kable(
+  summary_tbl,
+  caption = "Cox PH results — High vs Low signature score across all cohorts and endpoints.\nDirection OK: whether the observed HR matches the expected direction declared in signatures.yaml."
+) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(4, bold = TRUE) %>%
+  row_spec(which(as.numeric(gsub("<", "", summary_tbl$`P-value`)) < 0.05 |
+                   summary_tbl$`P-value` == "<0.001"), background = "#FFF3CD")
+```
+
+### Forest Plots
+
+```{r forest-plots}
+#| label: forest-plots
+#| fig-height: 5
+
+for (cohort_name in names(all_results)) {
+  for (endpoint in names(all_results[[cohort_name]])) {
+    ep_res <- all_results[[cohort_name]][[endpoint]]
+
+    if (length(ep_res) == 0) next
+
+    # Build named list for forest plot
+    named_res <- set_names(ep_res, map_chr(ep_res, "sig_label"))
+
+    p <- plot_forest(named_res)
+    p <- p + labs(
+      title    = sprintf("Forest Plot — %s | %s", cohort_name, endpoint),
+      subtitle = "High vs Low signature score · Cox PH (unadjusted)"
+    )
+    print(p)
+    cat("\n")
+  }
+}
+```
+
+---
+
+## Methods
+
+### Statistical Methods
+
+**Signature scoring:** Gene expression values (log2 RSEM) are z-scored per gene
+across all samples within a cohort. The per-sample signature score is the arithmetic
+mean of z-scored values across all signature genes.
+
+**Patient stratification:** Patients are divided into *High* and *Low* groups at the
+cohort-specific **median** signature score.
+
+**Cox proportional hazards model:** An unadjusted Cox PH model is fit with
+`score_group` (High vs Low) as the predictor:
+
+$$h(t) = h_0(t) \cdot \exp(\beta \cdot \text{score\_group})$$
+
+Hazard ratios (HR), 95 % confidence intervals, and two-sided Wald test *p*-values
+are reported.
+
+**PH assumption:** The proportional hazards assumption is tested using scaled
+Schoenfeld residuals (`cox.zph`). A global *p* < 0.05 indicates a potential violation.
+
+**Kaplan–Meier curves:** KM estimates are plotted per group with 95 % pointwise
+confidence bands. Log-rank test *p*-values are overlaid.
+
+### Software
+
+```{r session-info}
+#| label: session-info
+#| code-fold: false
+
+si <- sessionInfo()
+cat(sprintf("R version : %s\n", si$R.version$version.string))
+pkgs <- c("survival", "survminer", "dplyr", "ggplot2", "yaml", "kableExtra")
+for (pkg in pkgs) {
+  v <- tryCatch(as.character(packageVersion(pkg)), error = function(e) "not installed")
+  cat(sprintf("  %-15s %s\n", pkg, v))
+}
+```
+
+---
+
+*Report generated with [Quarto](https://quarto.org/) on `r format(Sys.time(), "%Y-%m-%d %H:%M %Z")`.*

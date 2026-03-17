@@ -1,0 +1,143 @@
+# Larkspur Survival — renv lockfile
+# Generated to record expected R package versions.
+# To restore: install.packages("renv"); renv::restore()
+
+{
+  "R": {
+    "Version": "4.3.3",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cloud.r-project.org"
+      }
+    ]
+  },
+  "Packages": {
+    "renv": {
+      "Package": "renv",
+      "Version": "1.0.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "75996b6a95c5dbff33490a1cc9dc1fb3",
+      "Requirements": []
+    },
+    "survival": {
+      "Package": "survival",
+      "Version": "3.5-8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "2d67027c3ce25bf5b8e6c7f54ac69e08",
+      "Requirements": ["Matrix"]
+    },
+    "survminer": {
+      "Package": "survminer",
+      "Version": "0.4.9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "65e7de0e7b2a7fdbe4ef61ca3e6f5e43",
+      "Requirements": [
+        "dplyr", "ggplot2", "ggpubr", "magrittr", "maxstat",
+        "purrr", "scales", "stringr", "survival", "tibble", "tidyr"
+      ]
+    },
+    "dplyr": {
+      "Package": "dplyr",
+      "Version": "1.1.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "fedd9d00c2944ff00a0e2696ccf048ec",
+      "Requirements": [
+        "R6", "cli", "generics", "glue", "lifecycle", "magrittr",
+        "pillar", "rlang", "tibble", "tidyselect", "vctrs"
+      ]
+    },
+    "tidyr": {
+      "Package": "tidyr",
+      "Version": "1.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "915f4565c3a46226b6f5c40568e52479",
+      "Requirements": [
+        "cli", "dplyr", "glue", "lifecycle", "magrittr", "purrr",
+        "rlang", "stringr", "tibble", "tidyselect", "vctrs"
+      ]
+    },
+    "readr": {
+      "Package": "readr",
+      "Version": "2.1.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "9de96463d2117f6ac49980577939b31a",
+      "Requirements": [
+        "R6", "cli", "clipr", "crayon", "hms", "lifecycle",
+        "magrittr", "rlang", "tibble", "tzdb", "vroom"
+      ]
+    },
+    "ggplot2": {
+      "Package": "ggplot2",
+      "Version": "3.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "44c6a2f8202d5b7e3ea580bc73fa5ec6",
+      "Requirements": [
+        "MASS", "cli", "glue", "gtable", "isoband", "lifecycle",
+        "mgcv", "rlang", "scales", "tibble", "vctrs", "withr"
+      ]
+    },
+    "yaml": {
+      "Package": "yaml",
+      "Version": "2.3.10",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "51dab85c6c98e50a18d7551e9d49f7d5",
+      "Requirements": []
+    },
+    "kableExtra": {
+      "Package": "kableExtra",
+      "Version": "1.4.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "bbbf9d9a81e3d2c3a27f51fb5e6f31c1",
+      "Requirements": [
+        "digest", "glue", "htmltools", "knitr", "magrittr",
+        "rlang", "rmarkdown", "rstudioapi", "scales", "stringr",
+        "svglite", "viridisLite", "xml2"
+      ]
+    },
+    "tibble": {
+      "Package": "tibble",
+      "Version": "3.2.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "a84e2cc86d07289b3b6f5069df7a004c",
+      "Requirements": [
+        "fansi", "lifecycle", "magrittr", "pillar", "pkgconfig",
+        "rlang", "utils", "vctrs"
+      ]
+    },
+    "purrr": {
+      "Package": "purrr",
+      "Version": "1.0.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1cba04a4e9414bdefc9dcaa99649a8dc",
+      "Requirements": ["cli", "lifecycle", "magrittr", "rlang", "vctrs"]
+    },
+    "stringr": {
+      "Package": "stringr",
+      "Version": "1.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "960e2ae9e09656611e0b8214ad543207",
+      "Requirements": ["cli", "glue", "lifecycle", "magrittr", "rlang", "stringi", "vctrs"]
+    },
+    "here": {
+      "Package": "here",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "24b224366f9c2e7534d2344d10d59ef0",
+      "Requirements": ["rprojroot"]
+    }
+  }
+}

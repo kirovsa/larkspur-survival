@@ -1,0 +1,40 @@
+# Larkspur Survival — .gitignore
+
+# renv library (installed packages — large, reproducible from renv.lock)
+renv/library/
+renv/staging/
+renv/python/
+
+# Quarto output
+_output/
+_site/
+.quarto/
+analysis/_freeze/
+analysis/survival_analysis_files/
+
+# R session artefacts
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user/
+
+# OS / editor artefacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Real TCGA data (large; download separately via cbioportal/README.md).
+# The example brca_tcga_pub data is intentionally tracked for demonstration.
+# Add study-specific ignores here for large real cohorts, e.g.:
+# cbioportal/luad_tcga/
+# cbioportal/coad_tcga/
+
+# Rendered HTML reports (generated artefacts)
+analysis/*.html
+
+# Temporary files
+tmp/

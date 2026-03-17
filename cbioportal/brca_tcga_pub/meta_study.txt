@@ -1,0 +1,7 @@
+type_of_cancer: brca
+cancer_study_identifier: brca_tcga_pub
+name: Breast Invasive Carcinoma (TCGA, PanCancer Atlas)
+description: Comprehensive molecular profiling of 150 breast cancer samples from TCGA (synthetic example data).
+citation: Comprehensive molecular portraits of human breast tumours. Nature 2012.
+pmid: 23000897
+groups: PUBLIC

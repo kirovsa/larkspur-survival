@@ -1,0 +1,51 @@
+# Gene Signature Definitions
+#
+# Each signature defines a named gene set to score per sample.
+# `name`        unique identifier used in filenames and plot titles.
+# `label`       human-readable label for the report.
+# `genes`       list of Hugo gene symbols that form the signature.
+# `description` optional free-text description.
+# `scoring`     method to aggregate gene expression into a score.
+#               Supported values: "mean" (default), "median", "pc1"
+#               - mean  : arithmetic mean of z-scored gene expression values
+#               - median: median   of z-scored gene expression values
+#               - pc1   : first principal component score
+# `direction`   "positive" (high score = poor prognosis assumed as default)
+#               "negative" (high score = good prognosis, HR < 1 expected)
+
+signatures:
+  - name: proliferation
+    label: "Proliferation Signature"
+    description: >
+      Genes associated with cell cycle and mitotic activity.
+      High score indicates high proliferative activity.
+    genes:
+      - MKI67
+      - CCND1
+      - MYC
+    scoring: mean
+    direction: positive
+
+  - name: brca_dna_repair
+    label: "BRCA DNA Repair Signature"
+    description: >
+      Core homologous recombination / DNA-damage repair genes.
+      Low expression may indicate HR deficiency.
+    genes:
+      - BRCA1
+      - BRCA2
+      - TP53
+    scoring: mean
+    direction: negative
+
+  - name: immune_evasion
+    label: "Immune Evasion / Angiogenesis Signature"
+    description: >
+      Genes linked to angiogenesis and immune evasion pathways.
+    genes:
+      - VEGFA
+      - AKT1
+      - PIK3CA
+      - PTEN
+    scoring: mean
+    direction: positive
