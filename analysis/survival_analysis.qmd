@@ -23,9 +23,9 @@ execute:
   message: false
   cache: false
 params:
-  cohorts_yaml:   "../metadata/cohorts.yaml"
-  signatures_yaml: "../metadata/signatures.yaml"
-  data_dir:       "../cbioportal"
+  cohorts_yaml:   "metadata/cohorts.yaml"
+  signatures_yaml: "metadata/signatures.yaml"
+  data_dir:       "/media/kirovs/p1/cbio/datahub/public/"
 ---
 
 ```{r setup}
@@ -65,6 +65,9 @@ For each combination of cohort × signature × endpoint, the analysis:
 ```{r load-config}
 #| label: load-config
 
+cat(getwd())
+cat(params$cohorts_yaml)
+cat(params$signatures_yaml)
 cohort_cfg <- yaml::read_yaml(here(params$cohorts_yaml))
 sig_cfg    <- yaml::read_yaml(here(params$signatures_yaml))
 
@@ -150,8 +153,12 @@ for (cohort_name in names(cohort_data)) {
           NULL
         }
       )
+      
+      hist(scores,breaks=100,main=paste("Histogram of signature",sig_name, "calculated score in", cohort_name))
+      
       if (is.null(scores)) next
-
+    
+      
       surv_data <- tryCatch(
         prepare_survival_data(clinical, scores, endpoint = endpoint),
         error = function(e) {
