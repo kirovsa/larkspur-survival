@@ -49,3 +49,54 @@ signatures:
       - PTEN
     scoring: mean
     direction: positive
+    
+  - name: pip4pan
+    label: "PIP4K2C"
+    description: >
+      Genes linked to PIP4K2C.
+    genes:
+      - ARF3
+      - RAB5B
+      - BAZ2A
+      - DNAJC14
+      - CS
+      - ATP5B
+      - OS9
+      - TMBIM6
+      - ATP2A2
+      - DAZAP2
+      - RNF41
+      - SCYL2
+      - DCTN2
+      - MARS
+      - PSME3
+    scoring: mean
+    direction: positive
+
+  - name: pip4pan-modified
+    label: "PIP4K2Cmod"
+    description: >
+      Genes linked to PIP4K2C- modified
+    genes:
+      - ARF3
+      - RAB5B
+      - DNAJC14
+      - SCYL2
+      - DCTN2
+      - CLTC
+      - ESYT1
+      - VPS41
+      - GORASP2
+      - AP1G1
+    scoring: mean
+    direction: positive
+
+  - name: pip4pan-coad
+    label: "PIP4K2Ccoad"
+    description: >
+      Genes linked to PIP4K2C- COADREAD
+    genes:
+      - ARF3
+      - DAZAP2
+    scoring: mean
+    direction: positive
