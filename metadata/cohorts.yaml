@@ -1,0 +1,38 @@
+# TCGA Cohort Definitions
+#
+# Each entry defines one cohort to be analysed.
+# The `study_id` must match the folder name under cbioportal/.
+# `expression_file` is relative to the study folder.
+# `clinical_file`   is relative to the study folder.
+# `label`           is a human-readable name used in the report.
+# `cancer_type`     short acronym shown in plots.
+# `endpoints`       list one or both of [OS, PFS].
+
+cohorts:
+  - study_id: brca_tcga_pub
+    label: "Breast Cancer (TCGA)"
+    cancer_type: BRCA
+    clinical_file: data_clinical_patient.txt
+    expression_file: data_mrna_seq_v2_rsem.txt
+    endpoints:
+      - OS
+      - PFS
+
+  # Uncomment and populate with real cBioPortal data to add more cohorts:
+  # - study_id: luad_tcga
+  #   label: "Lung Adenocarcinoma (TCGA)"
+  #   cancer_type: LUAD
+  #   clinical_file: data_clinical_patient.txt
+  #   expression_file: data_mrna_seq_v2_rsem.txt
+  #   endpoints:
+  #     - OS
+  #     - PFS
+
+  # - study_id: coad_tcga
+  #   label: "Colon Adenocarcinoma (TCGA)"
+  #   cancer_type: COAD
+  #   clinical_file: data_clinical_patient.txt
+  #   expression_file: data_mrna_seq_v2_rsem.txt
+  #   endpoints:
+  #     - OS
+  #     - PFS

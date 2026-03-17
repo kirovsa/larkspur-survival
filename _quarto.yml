@@ -1,0 +1,15 @@
+project:
+  type: website
+  output-dir: _output
+
+website:
+  title: "Larkspur Survival Analysis"
+  navbar:
+    left:
+      - href: analysis/survival_analysis.qmd
+        text: "Survival Analysis"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
