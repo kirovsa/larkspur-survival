@@ -114,7 +114,7 @@ overview_tbl <- imap_dfr(cohort_data, function(d, lbl) {
     Patients       = nrow(d$clinical),
     Genes          = nrow(d$expr),
     OS_events      = sum(d$clinical$OS_STATUS  == "1:DECEASED",    na.rm = TRUE),
-    PFS_events     = sum(d$clinical$PFS_STATUS == "1:PROGRESSED",  na.rm = TRUE)
+    PFS_events     = sum(d$clinical$PFS_STATUS == "1:PROGRESSION",  na.rm = TRUE)
   )
 })
 
